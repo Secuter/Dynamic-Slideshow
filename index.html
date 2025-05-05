@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dalong Image Slideshow Generator</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        #url-input {
+            width: 500px;
+            padding: 10px;
+        }
+
+        .slideshow-container {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+            position: relative;
+            background: #f9f9f9;
+            border-radius: 5px;
+            float: left;
+        }
+
+        .delete {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            cursor: pointer;
+            color: red;
+            font-weight: bold;
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        .slideshow-container {
+            max-width: 1000px;
+            position: relative;
+            margin: auto;
+        }
+
+        .prev,
+        .next {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            width: auto;
+            margin-top: -22px;
+            padding: 16px;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            transition: 0.6s ease;
+            border-radius: 0 3px 3px 0;
+            user-select: none;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .next {
+            right: 0;
+            border-radius: 3px 0 0 3px;
+        }
+
+        .prev:hover,
+        .next:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .numbertext {
+            color: #f2f2f2;
+            font-size: 12px;
+            padding: 8px 12px;
+            position: absolute;
+            top: 0;
+        }
+
+        .dot {
+            cursor: pointer;
+            height: 15px;
+            width: 15px;
+            margin: 0 2px;
+            background-color: #bbb;
+            border-radius: 50%;
+            display: inline-block;
+            transition: background-color 0.6s ease;
+        }
+
+        .active,
+        .dot:hover {
+            background-color: #444;
+        }
+
+        .fade {
+            animation-name: fade;
+            animation-duration: 1.5s;
+        }
+
+        @keyframes fade {
+            from {
+                opacity: .4
+            }
+
+            to {
+                opacity: 1
+            }
+        }
+    </style>
+    <script>
+        let slideIndexes = {};
+        let slideshowCount = 0;
+
+        function checkImage(url, callback) {
+            console.log(`${url}`);
+            const img = new Image();
+            img.onload = function () {
+                console.log('Image loaded successfully.');
+                callback(true);
+            };
+            img.onerror = function () {
+                console.log('Image failed to load.');
+                callback(false);
+            };
+            img.src = url;
+        }
+
+        function createSlideshow(urls) {
+            const id = `slideshow_${++slideshowCount}`;
+            slideIndexes[id] = 1;
+            let imgs = "";
+            for (let i = 1; i <= 8; i++) {
+                imgs += `<div class="slide fade" hidden>
+                    <div class="numbertext">${i} / 8</div>
+                    <img src="${urls[i - 1]}" style="width:100%">
+                </div>`
+            }
+            let dots = "";
+            for (let i = 1; i <= 8; i++) {
+                dots += `<span class="dot" onclick="selectSlide('${id}', ${i})"></span>`
+            }
+            const container = $(`<div class="slideshow-container" id="${id}">
+                <div class="delete">X</div>
+                <div class="slideshow">
+                    ${imgs}
+                    <a class="prev" onclick="prevSlide('${id}')">&#10094;</a>
+                    <a class="next" onclick="nextSlide('${id}')">&#10095;</a>
+                </div>
+                <br>
+                <div style="text-align:center">${dots}</div>
+            </div>`);
+
+            container.find(".delete").on("click", function () {
+                container.fadeOut(300, function () { $(this).remove(); });
+            });
+
+            $("#slideshows").prepend(container.hide().slideDown());
+
+            selectSlide(id, 1);
+        }
+
+        function nextSlide(id) {
+            if (slideIndexes[id] < 8)
+                showSlides(id, slideIndexes[id] += 1);
+        }
+
+        function prevSlide(id) {
+            if (slideIndexes[id] > 1)
+                showSlides(id, slideIndexes[id] -= 1);
+        }
+
+        function selectSlide(id, n) {
+            showSlides(id, slideIndexes[id] = n);
+        }
+
+        function showSlides(id, n) {
+            let i;
+            const div = $(`#${id}`);
+            let slides = div.find(".slide");
+            let dots = div.find(".dot");
+
+            slides.each(function (i) {
+                $(this).hide();
+            });
+            dots.each(function (i) {
+                $(this).removeClass("active");
+            });
+
+            $(slides[slideIndexes[id] - 1]).show();
+            $(dots[slideIndexes[id] - 1]).addClass("active");
+        }
+
+        $(function () {
+            $("#generate").on("click", function () {
+                const url = $("#url-input").val().trim();
+
+                // Genarate image urls
+                const match = url.match(/(http:\/\/www\.dalong\.net\/reviews\/.+\/)([^\/]+)\.htm/);
+                if (!match)
+                    alert("Invalid Dalong URL format.");;
+                const base = match[1];
+                const prefix = match[2].split("_")[0];
+
+                checkImage(`${base}p/${prefix}m_0001.jpg`, function (exists) {
+                    if (exists) {
+                        const urls = [];
+                        for (let i = 1; i <= 8; i++) {
+                            const num = String(i).padStart(4, `0`);
+                            urls.push(`${base}p/${prefix}m_${num}.jpg`);
+                        }
+                        createSlideshow(urls);
+                        $("#url-input").val(``);
+                    }
+                    else {
+                        const urls = [];
+                        for (let i = 1; i <= 8; i++) {
+                            const num = String(i).padStart(4, `0`);
+                            urls.push(`${base}p/${prefix}_m${num}.JPG`);
+                        }
+                        createSlideshow(urls);
+                        $("#url-input").val(``);
+                    }
+                });
+            });
+
+            $("#url-input").on("keypress", function (e) {
+                if (e.which === 13) {
+                    $("#generate").click();
+                }
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <h2>Enter Dalong URL:</h2>
+    <input id="url-input" type="text" placeholder="e.g. http://www.dalong.net/reviews/hg/h001/h001_i.htm" />
+    <button id="generate">Show instructions</button>
+    <div id="slideshows"></div>
+</body>
+
+</html>
